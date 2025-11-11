@@ -1,0 +1,19 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+<suite name="FileSharingApp_v1_0_15_Suite" verbose="1" parallel="false">
+    <!-- Run this to:
+         1) Start the server
+         2) Launch Web UI (browser)
+         3) Execute Cucumber BDD tests
+    -->
+    <test name="LaunchServer">
+        <classes>
+            <class name="com.filesharingapp.tests.LaunchServerTest"/>
+        </classes>
+    </test>
+
+    <test name="BDD">
+        <classes>
+            <class name="com.filesharingapp.tests.CucumberTestRunner"/>
+        </classes>
+    </test>
+</suite>

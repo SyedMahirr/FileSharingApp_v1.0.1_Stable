@@ -1,0 +1,8 @@
+[2025-11-10 22:14:42] INFO  FileSharingApp - Loaded application.properties
+[2025-11-10 22:14:42] INFO  FileSharingApp - FileSharingServer started on port 8080
+[2025-11-10 22:14:42] INFO  FileSharingApp - MainController: server is ready on port 8080
+[2025-11-10 22:14:42] INFO  FileSharingApp - Opening Web UI at http://localhost:8080/
+Nov 10, 2025 11:08:17 PM com.filesharingapp.utils.LoggerUtil info
+INFO: Attempting to start FileSharingServer on port 8080...
+Nov 10, 2025 11:16:35 PM com.filesharingapp.utils.LoggerUtil info
+INFO: Attempting to start FileSharingServer on port 8080...

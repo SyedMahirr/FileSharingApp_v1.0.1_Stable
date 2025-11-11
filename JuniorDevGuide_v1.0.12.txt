@@ -1,0 +1,102 @@
+FileSharingApp v1.0.12 - Junior Developer Guide (Simple English)
+====================================================================
+
+1. Story
+--------
+You have a big ZIP file.
+You want to send it safely and see what happens.
+This app does not upload to real servers by default.
+It shows you how a real app WOULD be built,
+using clean Java, web UI, tests, and logs.
+
+2. Main Ideas (Very Simple)
+---------------------------
+
+(Blue) Java Classes
+- A class is a file that groups related code.
+- Example: WebLauncher is a class that starts a tiny web server.
+- Example: LoggerUtil is a class that prints messages.
+
+(Green) Interfaces (we keep it small here)
+- We could create TransferMethod interface later for HTTP/S3/ZeroTier.
+- Idea: An interface says "any class that implements me must have this method."
+
+(Orange) Helpers
+- LoggerUtil: one simple place to log messages.
+- AppConfig: reads configuration from application.properties.
+- NetworkUtil: checks IP and ports.
+- ValidationUtil: checks if zip file and port number look safe.
+
+(Purple) Web UI
+- WebLauncher uses Java's built-in HttpServer.
+- It serves index.html on http://localhost:8080.
+- index.html is where user types:
+  - Name
+  - Role (Sender/Receiver)
+  - Mode (HTTP/ZeroTier/S3)
+  - Paths and IPs.
+- JavaScript in index.html shows friendly messages.
+- Later you can connect the form to /send-http API to trigger real transfers.
+
+3. Testing (Dark Green)
+-----------------------
+- We use TestNG so we can run tests easily in IntelliJ.
+- LaunchWebUITest:
+  - Starts the Web UI so QA can see it.
+- CucumberTestRunner:
+  - Runs feature files written in near-English.
+- CucumberSteps:
+  - Links English steps to small Java methods.
+
+Example:
+- Feature line: "Given the File Sharing App is ready"
+- Java method: appReady() sets a boolean flag.
+
+4. Cloud & Security Concepts (AWS Friendly)
+-------------------------------------------
+- application.properties holds:
+  - aws.s3.bucket
+  - aws.s3.region
+- We DO NOT put access keys in code.
+- In real AWS:
+  - We would use IAM Role or local AWS profile.
+- This matches AWS Cloud Practitioner ideas:
+  - Shared Responsibility
+  - IAM for permissions
+  - S3 for storage
+  - No secrets in source.
+
+5. How to Read the Code
+-----------------------
+Start with these:
+
+1) WebLauncher.java
+   - See how we start HttpServer.
+   - See how we load index.html.
+   - See how we open the browser.
+
+2) index.html
+   - Read the labels and inputs.
+   - See how JavaScript builds a friendly status message.
+
+3) LoggerUtil.java
+   - Very small.
+   - Shows you how to wrap logging so other classes stay clean.
+
+4) NetworkUtil.java and ValidationUtil.java
+   - Simple checks.
+   - Good place to practice adding more rules.
+
+6. Why this project is good for practice
+----------------------------------------
+- Everything is short and readable.
+- Every class has comments in clear English.
+- No hidden magic or heavy frameworks.
+- You can extend it:
+  - Add real transfer code.
+  - Add Selenium tests for the HTML page.
+  - Add more Cucumber scenarios.
+  - Add AWS S3 upload using IAM role when you are ready.
+
+If you can understand WebLauncher + index.html + LoggerUtil,
+you already understand most real-world micro-tools.
