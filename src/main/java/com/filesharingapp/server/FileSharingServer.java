@@ -1,5 +1,7 @@
 package com.filesharingapp.server;
 
+import com.filesharingapp.utils.LoggerUtil;
+import jakarta.servlet.http.HttpServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -10,6 +12,9 @@ import org.eclipse.jetty.server.handler.ContextHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -35,6 +40,23 @@ public class FileSharingServer {
         try {
             int port = 8080;
             Server server = new Server(port);
+            ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+            context.setContextPath("/");
+            server.setHandler(context);
+
+            // ✅ Add this new /prompt endpoint here
+            context.addServlet(new ServletHolder(new HttpServlet() {
+                @Override
+                protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+                    String msg = req.getParameter("msg");
+                    if (msg != null && !msg.isBlank()) {
+                        System.out.println("[Browser] " + msg);
+                    }
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    resp.getWriter().println("OK");
+                }
+            }), "/prompt");
+
 
             // --- Serve static resources (index.html etc.) ---
             ResourceHandler resourceHandler = new ResourceHandler();
@@ -52,8 +74,7 @@ public class FileSharingServer {
 
             server.setHandler(handlers);
             server.start();
-
-            System.out.println("[FileSharingServer] ✅ Running at http://localhost:" + port);
+            LoggerUtil.info("[FileSharingServer] ✅ Running at http://localhost:" + port);
             return port;
         } catch (Exception e) {
             e.printStackTrace();
@@ -77,7 +98,8 @@ public class FileSharingServer {
         try {
             if (server != null && server.isStarted()) {
                 server.stop();
-                System.out.println("[FileSharingServer] Server stopped.");
+                LoggerUtil.info("[FileSharingServer] Server stopped.");
+
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -103,21 +125,24 @@ public class FileSharingServer {
             try (PrintWriter out = response.getWriter()) {
                 switch (target) {
                     case "/health":
-                        out.println("OK");
+                        LoggerUtil.info("OK");
                         break;
                     case "/handshake":
-                        out.println("READY:" + System.currentTimeMillis());
+                        LoggerUtil.info("Ready: " + System.currentTimeMillis());
                         break;
                     case "/api/send-http":
-                        out.println("UPLOAD_OK");
+                        LoggerUtil.info("UPLOAD_OK");
                         break;
                     default:
                         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                        out.println("404 Not Found");
+                        LoggerUtil.info("404 Not Found");
+
                 }
             }
 
             baseRequest.setHandled(true);
         }
     }
+
+
 }

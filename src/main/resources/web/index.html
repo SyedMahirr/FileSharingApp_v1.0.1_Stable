@@ -26,101 +26,139 @@
         <div class="small">If you're on same Wi-Fi, use this. For remote, use ZeroTier.</div>
     </div>
 
-    <label for="name">Your Name</label>
-    <input id="name" type="text" placeholder="Enter your name" />
+    <!-- Wrap form so we can validate on submit -->
+    <form id="transferForm">
+        <label for="name">Your Name</label>
+        <input id="name" type="text" placeholder="Enter your name"/>
 
-    <label for="role">Role</label>
-    <select id="role">
-        <option value="Sender">Sender</option>
-        <option value="Receiver">Receiver</option>
-    </select>
+        <label for="role">Role</label>
+        <select id="role">
+            <option value="Sender">Sender</option>
+            <option value="Receiver">Receiver</option>
+        </select>
 
-    <label for="method">Transfer Method</label>
-    <select id="method">
-        <option value="HTTP">HTTP (Simple / LAN)</option>
-        <option value="ZeroTier">ZeroTier (Secure P2P)</option>
-        <option value="S3">AWS S3 (Cloud)</option>
-    </select>
+        <label for="method">Transfer Method</label>
+        <select id="method">
+            <option value="HTTP">HTTP (Simple / LAN)</option>
+            <option value="ZeroTier">ZeroTier (Secure P2P)</option>
+            <option value="S3">AWS S3 (Cloud)</option>
+        </select>
 
-    <label for="file">File (Sender only)</label>
-    <input id="file" type="file" />
+        <!-- This label text is updated dynamically based on Role -->
+        <label for="file" id="fileLabel">File (Sender only)</label>
+        <input id="file" type="file"/>
 
-    <label for="target">Target IP / URL / Bucket</label>
-    <input id="target" type="text" placeholder="192.168.x.x or bucket-name" />
+        <label for="target">Target IP / URL / Bucket</label>
+        <input id="target" type="text" placeholder="192.168.x.x or bucket-name"/>
 
-    <label for="port">Port</label>
-    <input id="port" type="text" value="8080" />
+        <label for="port">Port</label>
+        <input id="port" type="text" value="8080"/>
 
-    <button id="startBtn">🚀 Start</button>
-    <div id="msg" class="small" aria-live="polite"></div>
+        <button id="startBtn" type="submit">🚀 Start</button>
+    </form>
+
+    <!-- Single status line used by script -->
+    <div id="status" class="small" aria-live="polite"></div>
 </div>
 
 <script>
-    // Detect local IP (best effort)
-    (function () {
-      const ipField = document.getElementById('ipField');
+    // Best-effort external IP detection for display only
+    async function detectLocalIP() {
       try {
-        const pc = new RTCPeerConnection({iceServers: []});
-        pc.createDataChannel("");
-        pc.createOffer().then(o => pc.setLocalDescription(o));
-        pc.onicecandidate = e => {
-          if (!e || !e.candidate) return;
-          const m = e.candidate.candidate.match(/([0-9]{1,3}(\.[0-9]{1,3}){3})/);
-          if (m) {
-            ipField.textContent = m[1];
-            pc.close();
-          }
-        };
-        setTimeout(() => {
-          if (ipField.textContent === "Detecting...") {
-            ipField.textContent = location.hostname || "localhost";
-          }
-        }, 2000);
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        document.getElementById('userIP').textContent = data.ip;
       } catch (e) {
-        ipField.textContent = location.hostname || "localhost";
+        document.getElementById('userIP').textContent = location.hostname || 'localhost';
       }
+    }
+    window.onload = detectLocalIP;
+
+    // Validation + friendly prompts on Start
+    (function () {
+      const form     = document.getElementById('transferForm');
+      const roleEl   = document.getElementById('role');
+      const methodEl = document.getElementById('method');
+      const targetEl = document.getElementById('target');
+      const nameEl   = document.getElementById('name');
+      const fileEl   = document.getElementById('file');
+      const statusEl = document.getElementById('status');
+      const fileLabel = document.getElementById('fileLabel');
+
+      // --- ROLE-BASED LABEL BEHAVIOR ---
+      // When Sender: "File (Sender only)"
+      // When Receiver: "Save Location (Receiver only)"
+      function updateFileLabel() {
+        if (roleEl.value === 'Sender') {
+          fileLabel.textContent = 'File (Sender only)';
+          fileEl.disabled = false;
+        } else {
+          fileLabel.textContent = 'Save Location (Receiver only)';
+          // Web UI is informational; keep input enabled so layout stays stable.
+          // (Desktop app actually handles the save path.)
+        }
+      }
+      updateFileLabel();
+      roleEl.addEventListener('change', updateFileLabel);
+
+      // --- SUBMIT VALIDATION ---
+      form.addEventListener('submit', function (e) {
+        statusEl.textContent = '';
+
+        const role   = roleEl.value;
+        const method = methodEl.value;
+        const target = targetEl.value.trim();
+
+        // 1) Require name
+        if (!nameEl.value.trim()) {
+          e.preventDefault();
+          statusEl.textContent = "Please tell me your name 😊";
+          return;
+        }
+
+        // 2) Sender must pick a file
+        if (role === 'Sender' && !fileEl.files.length) {
+          e.preventDefault();
+          statusEl.textContent = "You did not pick any file. Please select at least one file.";
+          return;
+        }
+
+        // 3) Sender + real transport => target required
+        const needsTarget =
+          role === 'Sender' &&
+          (method === 'HTTP' || method === 'ZeroTier' || method === 'S3');
+
+        if (needsTarget && !target) {
+          e.preventDefault();
+          statusEl.textContent =
+            "Please enter the Receiver IP / URL / Bucket before starting 🚦";
+          return;
+        }
+
+        // 4) Friendly footer AFTER valid input
+        if (role === 'Receiver') {
+          statusEl.textContent =
+            "Hi friend 👋 Fill in the details above and click Start when you're ready to receive.";
+        } else {
+          statusEl.textContent = "Awesome 🚀 Preparing your transfer…";
+        }
+
+        // NOTE: This Web UI is a helper / front-end only in v1.0.15.
+        // Prevent full page navigation; desktop app handles the real transfer.
+        e.preventDefault();
+      });
     })();
 
-    // Simple client-side prompt hookup only
-    document.getElementById('startBtn').addEventListener('click', function() {
-  const role = document.getElementById('role').value;
-  const method = document.getElementById('method').value;
-  const name = document.getElementById('name').value.trim();
-
-  // Basic input validation
-  if (!name) {
-    alert('Please enter your name.');
-    return;
-  }
-
-  if (!role) {
-    alert('Please select a role.');
-    return;
-  }
-
-  if (!method) {
-    alert('Please select a transfer method.');
-    return;
-  }
-
-  // Only after validation succeeds
-  const msg = `Hi ${name} 👋 You chose ${role} using ${method}. Continue in desktop app to run full transfer.`;
-  document.getElementById('statusMsg').textContent = msg;
-});
-
-
-
-async function detectLocalIP() {
+    // Poll lightweight /prompt updates to show server messages in the UI
+setInterval(async () => {
   try {
-    const res = await fetch('https://api.ipify.org?format=json');
-    const data = await res.json();
-    document.getElementById('userIP').textContent = data.ip;
-  } catch {
-    document.getElementById('userIP').textContent = 'localhost';
-  }
-}
-window.onload = detectLocalIP;
-</script>
+    const res = await fetch('/prompt');
+    const txt = await res.text();
+    if (txt && txt !== 'OK') {
+      document.getElementById('status').textContent = txt;
+    }
+  } catch (_) {}
+}, 1500);
 
 </script>
 </body>

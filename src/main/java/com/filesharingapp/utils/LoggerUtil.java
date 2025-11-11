@@ -36,4 +36,29 @@ public final class LoggerUtil {
         System.err.println("[ERROR] " + msg);
         if (t != null) t.printStackTrace(System.err);
     }
+
+    /**
+     * Display a prompt message on the Web UI (if running with the web frontend).
+     * Falls back to console if no browser context is active.
+     */
+    public static void uiPrompt(String message) {
+        try {
+            // If the Web UI is active (FileSharingServer already started)
+            System.out.println("[UI PROMPT] " + message);
+
+            // Optional: also push to browser via a simple endpoint or WebSocket
+            // This lightweight POST will not break if the UI isn’t listening.
+            try {
+                var url = new java.net.URL("http://localhost:8080/prompt?msg=" + java.net.URLEncoder.encode(message, "UTF-8"));
+                var conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(500);
+                conn.getResponseCode(); // trigger
+                conn.disconnect();
+            } catch (Exception ignored) { }
+
+        } catch (Exception e) {
+            System.out.println("[PromptManager fallback] " + message);
+        }
+    }
+
 }

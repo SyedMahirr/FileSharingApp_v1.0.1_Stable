@@ -2,7 +2,9 @@ package com.filesharingapp.security;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * HashUtil
@@ -21,7 +23,7 @@ public final class HashUtil {
             StringBuilder sb = new StringBuilder();
             for (byte b : digest) sb.append(String.format("%02x", b));
             return sb.toString();
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);
         }
     }
@@ -39,8 +41,10 @@ public final class HashUtil {
             StringBuilder sb = new StringBuilder();
             for (byte b : digest) sb.append(String.format("%02x", b));
             return sb.toString();
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to compute SHA-256 for file: " + file.getAbsolutePath(), e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

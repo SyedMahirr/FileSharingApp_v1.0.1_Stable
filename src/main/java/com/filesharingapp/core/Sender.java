@@ -6,6 +6,9 @@ import com.filesharingapp.transfer.TransferMethod;
 import com.filesharingapp.transfer.ZeroTierTransferHandler;
 import com.filesharingapp.utils.LoggerUtil;
 import com.filesharingapp.utils.NetworkUtil;
+import com.filesharingapp.utils.ZipUtil;
+import com.filesharingapp.utils.NetworkUtil;
+
 
 import java.io.File;
 import java.net.*;
@@ -62,21 +65,27 @@ public class Sender {
                 return;
             }
 
-            // 8) Kick off transfer through proper handler
-            // 8) Kick off transfer through proper handler
+            /// 8) Kick off transfer through proper handler
             Instant start = Instant.now();
             TransferMethod handler = createHandlerFor(transport);
 
             LoggerUtil.info(PromptManager.SECURITY_NOTE);
 
-// We pass: senderName, file, method label, port, targetHost
-            String targetHost = askTargetHostForTransport(transport);
+// Zip before sending (without deleting original)
+            File fileToSend = ZipUtil.zipIfNeeded(file);
 
-// 🟢 New lines added here — do not remove or move existing logic
-            LoggerUtil.info("📡 Using transport method: " + transport);
+// Notify receiver which mode we’re using (best-effort, non-fatal)
+            String targetHost = askTargetHostForTransport(transport);
             NetworkUtil.broadcastModeToReceiver(transport, targetHost, port);
 
-            handler.send(prompt("Your name (for logs only): "), file, transport, port, targetHost);
+// We pass: senderName, zipped file, method label, port, targetHost
+            handler.send(
+                    prompt("Your name (for logs only): "),
+                    fileToSend,
+                    transport,
+                    port,
+                    targetHost
+            );
 
 
             // 9) Completion & logs

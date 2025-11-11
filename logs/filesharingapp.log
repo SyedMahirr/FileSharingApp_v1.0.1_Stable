@@ -11,3 +11,16 @@ INFO: Attempting to start FileSharingServer on port 8080...
 [2025-11-11 07:50:21] INFO  FileSharingApp - Welcome to the File Sharing App! 🎉
 [2025-11-11 07:50:21] INFO  FileSharingApp - Not sure what to do? Click ‘Help’ for a simple 1-2-3 step guide.
 [2025-11-11 07:50:21] INFO  FileSharingApp - Are you a Sender (S) or a Receiver (R)?
+[2025-11-11 09:31:35] INFO  FileSharingApp - [FileSharingServer] ✅ Running at http://localhost:8080
+[2025-11-11 09:31:41] INFO  FileSharingApp - 404 Not Found
+[2025-11-11 09:36:29] INFO  FileSharingApp - [FileSharingServer] ✅ Running at http://localhost:8080
+[2025-11-11 09:36:30] INFO  FileSharingApp - Ready: 1762871790696
+[2025-11-11 09:36:58] INFO  FileSharingApp - [FileSharingServer] ✅ Running at http://localhost:8080
+[2025-11-11 09:37:07] INFO  FileSharingApp - [FileSharingServer] ✅ Running at http://localhost:8080
+[2025-11-11 09:37:09] INFO  FileSharingApp - Ready: 1762871829091
+[2025-11-11 09:41:18] INFO  FileSharingApp - [FileSharingServer] ✅ Running at http://localhost:8080
+[2025-11-11 09:41:21] INFO  FileSharingApp - 404 Not Found
+[2025-11-11 09:48:17] INFO  FileSharingApp - [FileSharingServer] ✅ Running at http://localhost:8080
+[2025-11-11 09:54:18] INFO  FileSharingApp - [FileSharingServer] ✅ Running at http://localhost:8080
+[2025-11-11 10:09:50] INFO  FileSharingApp - [FileSharingServer] ✅ Running at http://localhost:8080
+[2025-11-11 10:09:54] INFO  FileSharingApp - 404 Not Found

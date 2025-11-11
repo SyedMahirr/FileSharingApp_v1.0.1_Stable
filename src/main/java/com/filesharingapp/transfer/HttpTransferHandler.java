@@ -4,6 +4,7 @@ import com.filesharingapp.core.PromptManager;
 import com.filesharingapp.security.HashUtil;
 import com.filesharingapp.utils.LoggerUtil;
 import com.filesharingapp.utils.NetworkUtil;
+import com.filesharingapp.utils.ZipUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -19,6 +20,14 @@ public class HttpTransferHandler implements TransferMethod {
 
     @Override
     public void send(String senderName, File file, String method, int port, String host) throws Exception {
+        LoggerUtil.info("[HTTP] Preparing to send file: " + file.getName());
+
+        // ✅ Add this line immediately after validating 'file'
+        File toSend = ZipUtil.zipIfNeeded(file);
+
+        // ✅ Use toSend instead of file everywhere below
+        long size = toSend.length();
+        LoggerUtil.info("[HTTP] Final file for transfer: " + toSend.getName() + " (" + size + " bytes)");
 
         // 🟢 Verify receiver reachability before actual send
         if (!NetworkUtil.pingReceiver(host, port)) {

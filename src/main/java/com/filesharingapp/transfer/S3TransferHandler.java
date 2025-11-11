@@ -4,6 +4,7 @@ import com.filesharingapp.core.PromptManager;
 import com.filesharingapp.utils.AppConfig;
 import com.filesharingapp.utils.LoggerUtil;
 import com.filesharingapp.utils.NetworkUtil;
+import com.filesharingapp.utils.ZipUtil;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
@@ -20,6 +21,15 @@ public class S3TransferHandler implements TransferMethod {
 
     @Override
     public void send(String sender, File file, String method, int port, String host) throws Exception {
+        LoggerUtil.info("[HTTP] Preparing to send file: " + file.getName());
+
+        // ✅ Add this line immediately after validating 'file'
+        File toSend = ZipUtil.zipIfNeeded(file);
+
+        // ✅ Use toSend instead of file everywhere below
+        long size = toSend.length();
+        LoggerUtil.info("[HTTP] Final file for transfer: " + toSend.getName() + " (" + size + " bytes)");
+
         // 🟢 Verify receiver reachability before upload (simple network check)
         if (!NetworkUtil.pingReceiver(host, port)) {
             LoggerUtil.warn(PromptManager.CONNECTION_RETRY);
