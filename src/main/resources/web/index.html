@@ -146,8 +146,11 @@
         <label for="aesKey">AES Key (Optional)</label>
         <input id="aesKey" type="password" placeholder="Enter AES key for encryption"/>
 
-        <label for="file" id="fileLabel">File(s)</label>
-        <input id="file" type="file" multiple/>
+        <!-- Sender file upload box (hide for Receiver) -->
+        <div id="senderBox">
+            <label for="file" id="fileLabel">File(s)</label>
+            <input id="file" type="file" multiple/>
+        </div>
 
         <label for="target">Target IP / URL / Bucket</label>
         <input id="target" type="text" placeholder="Receiver IP or Bucket"/>
@@ -171,13 +174,29 @@
         <li>Pick your role: Sender or Receiver.</li>
         <li>Choose method: HTTP, ZeroTier, or S3.</li>
         <li>Sender: Select file(s) and enter target IP or bucket.</li>
-        <li>Receiver: Pick folder and wait for sender.</li>
+        <li>Receiver: Wait for file to come.</li>
         <li>AES key is optional for encryption.</li>
     </ul>
     <button id="closeHelp">Close</button>
 </div>
 
 <script>
+    // ------------------ UI MODE SWITCH ------------------
+    function updateUI() {
+        const role = document.getElementById('role').value;
+
+        if (role === "Receiver") {
+            document.getElementById("senderBox").style.display = "none";
+        } else {
+            document.getElementById("senderBox").style.display = "block";
+        }
+    }
+
+    document.getElementById("role").addEventListener("change", updateUI);
+    document.getElementById("method").addEventListener("change", updateUI);
+    updateUI(); // initial load
+
+
     // ------------------ Dark Mode ------------------
     document.getElementById('darkModeBtn').addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
@@ -197,18 +216,14 @@
         const ipEl = document.getElementById('userIP');
         try {
             const res = await fetch('https://api.ipify.org?format=json');
-            if (res.ok) {
-                const data = await res.json();
-                ipEl.textContent = data.ip || location.hostname;
-            } else {
-                ipEl.textContent = location.hostname || 'localhost';
-            }
+            const data = await res.json();
+            ipEl.textContent = data.ip || location.hostname;
         } catch {
             ipEl.textContent = location.hostname || 'localhost';
         }
     }
-
     detectLocalIP();
+
 
     // ------------------ Status & Progress ------------------
     function setStatus(text, level) {
@@ -222,11 +237,12 @@
         document.getElementById('progressBar').style.width = percent + '%';
     }
 
-    // ------------------ HTTP Upload with Resume ------------------
+
+    // ------------------ HTTP UPLOAD (Sender) ------------------
     async function uploadHttpFiles(files, port) {
         const transferId = 'browser-' + Date.now();
-        const chunkSize = 512 * 1024; // adaptive chunk size
-        let totalBytes = Array.from(files).reduce((sum, f) => sum + f.size, 0);
+        const chunkSize = 512 * 1024;
+        let totalBytes = Array.from(files).reduce((s, f) => s + f.size, 0);
         let uploadedBytes = 0;
         let startTime = Date.now();
 
@@ -237,14 +253,13 @@
             while (offset < file.size) {
                 const end = Math.min(offset + chunkSize, file.size);
                 const blob = file.slice(offset, end);
-                const arrayBuf = await blob.arrayBuffer();
-                const bytes = new Uint8Array(arrayBuf);
+                const bytes = new Uint8Array(await blob.arrayBuffer());
 
                 const params = new URLSearchParams({
                     transferId,
-                    fileName: file.name.replace(/[^A-Za-z0-9._-]/g, "_"),
-                    chunkIndex: String(chunkIndex),
-                    totalBytes: String(file.size)
+                    fileName: file.name,
+                    chunkIndex,
+                    totalBytes: file.size
                 });
 
                 const res = await fetch('/upload?' + params.toString(), {
@@ -253,7 +268,7 @@
                 });
 
                 if (!res.ok) {
-                    setStatus('❌ Upload failed at chunk ' + chunkIndex, 'error');
+                    setStatus('❌ Upload stopped at chunk ' + chunkIndex, 'error');
                     return;
                 }
 
@@ -265,20 +280,59 @@
                 updateProgress(pct);
 
                 const elapsed = (Date.now() - startTime) / 1000;
-                const speed = (uploadedBytes / 1024 / 1024 / elapsed).toFixed(2); // MB/s
+                const speed = (uploadedBytes / (1024 * 1024) / elapsed).toFixed(2);
                 const eta = ((totalBytes - uploadedBytes) / (uploadedBytes / elapsed)).toFixed(1);
-                document.getElementById('speedInfo').textContent = `Speed: ${speed} MB/s | ETA: ${eta}s`;
 
-                setStatus(`📤 Uploading ${file.name}… ${pct}%`, 'ok');
+                document.getElementById('speedInfo').textContent = `Speed: ${speed} MB/s | ETA: ${eta}s`;
+                setStatus(`📤 Uploading… ${pct}%`, 'ok');
             }
         }
 
         setStatus('✅ Upload finished.', 'ok');
     }
 
-    // ------------------ Form Submit ------------------
+
+    // ------------------ HTTP RECEIVER (Download) ------------------
+    async function startHttpReceiver(port) {
+        setStatus('📥 Waiting for sender…', 'ok');
+
+        const pollInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`/download?port=${port}`);
+
+                if (res.status === 204) return; // no file yet
+
+                if (!res.ok) {
+                    setStatus('❌ Receiver error during download.', 'error');
+                    clearInterval(pollInterval);
+                    return;
+                }
+
+                // File is ready
+                const blob = await res.blob();
+                const fileName = res.headers.get("X-Filename") || "received_file";
+
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                link.click();
+
+                updateProgress(100);
+                setStatus(`✅ File received: ${fileName}`, 'ok');
+                clearInterval(pollInterval);
+
+            } catch (err) {
+                setStatus('❌ Receiver crashed: ' + err, 'error');
+                clearInterval(pollInterval);
+            }
+        }, 2000);
+    }
+
+
+    // ------------------ SUBMIT HANDLER ------------------
     document.getElementById('transferForm').addEventListener('submit', (e) => {
         e.preventDefault();
+
         const role = document.getElementById('role').value;
         const method = document.getElementById('method').value;
         const files = document.getElementById('file').files;
@@ -289,23 +343,18 @@
             return;
         }
 
-        if (role === 'Sender' && files.length === 0) {
-            setStatus('You did not pick any file.', 'error');
-            return;
+        if (role === 'Sender' && method === 'HTTP') {
+            if (files.length === 0) {
+                setStatus('You did not pick any file.', 'error');
+                return;
+            }
+            uploadHttpFiles(files, port);
         }
 
-        if (role === 'Sender' && method === 'HTTP') {
-            uploadHttpFiles(files, port);
-        } else {
-            setStatus('Run desktop app for this mode.', 'warn');
+        if (role === 'Receiver' && method === 'HTTP') {
+            startHttpReceiver(port);
         }
     });
-
-    // ------------------ Real-time Status via SSE ------------------
-    const evtSource = new EventSource('/prompt');
-    evtSource.onmessage = (e) => {
-        setStatus(e.data, 'ok');
-    };
 </script>
 </body>
 </html>

@@ -1,2 +1,3 @@
 timestamp,mode,senderIP,receiverIP,fileName,bytes,durationMs,status,message,resumeOffset,aesEnabled,checksum,extraMeta
 2025-11-13T21:27:42.867813100,HTTP,192.168.1.153,127.0.0.1,test_file3410885746686759993.txt.zip,216,4273,FAIL,Transfer failed or canceled,0,false,be172b25bb22ff2a9602d514e066b8f06d61846634434b623885c4f510c0c787,
+2025-11-15T13:15:28.313306200,HTTP,192.168.1.153,127.0.0.1,test_file5335123710443851285.txt.zip,216,4276,FAIL,Transfer failed or canceled,0,false,a74992779ddc8a138c762bf1236e280d23c6ad306c02f618337f6161b02e6eb1,
